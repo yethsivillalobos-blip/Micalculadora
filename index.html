@@ -3,7 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Calculadora de Precio de Venta Global</title>
+  <title>Calculadora de Precio de Venta Global (Beta)</title>
+
+  <!-- PWA -->
+  <meta name="theme-color" content="#10b981" />
+  <meta name="description" content="Calcula el precio de venta y margen neto de tus productos en varias monedas." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Precio Venta" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -13,6 +24,17 @@
       .no-print { display: none !important; }
       .printable { box-shadow: none !important; border: none !important; }
     }
+    .beta-badge {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 <body class="bg-[#f9fafb] text-[#111827] min-h-screen flex items-center justify-center p-4 sm:p-6">
@@ -20,7 +42,10 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-6 printable">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-xl font-semibold tracking-tight text-gray-900" id="title">Precio de Venta y Margen Neto</h1>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-semibold tracking-tight text-gray-900" id="title">Precio de Venta y Margen Neto</h1>
+            <span class="beta-badge" id="betaBadge">Beta</span>
+          </div>
           <p class="text-sm text-gray-500" id="subtitle">Calcula el precio final cobrando exactamente el margen de ganancia que deseas recibir libre.</p>
         </div>
 
@@ -41,8 +66,14 @@
             <option value="MXN">$ (MXN)</option>
             <option value="EUR">€ (EUR)</option>
           </select>
+
+          <button id="installBtn" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100 whitespace-nowrap">
+            📲 Instalar App
+          </button>
         </div>
       </div>
+
+      <p id="conversionNote" class="text-[11px] text-gray-400 no-print hidden"></p>
 
       <hr class="border-gray-100" />
 
@@ -95,7 +126,18 @@
             <div>
               <span class="block text-xs font-medium uppercase tracking-wider text-gray-400" id="labelPrecioSugerido">Precio de Venta Sugerido</span>
               <div id="resultadoPrecio" class="text-3xl sm:text-4xl font-bold tracking-tight text-[#10b981]" role="status" aria-live="polite">$0.00</div>
-              <div id="secondaryPrice" class="text-xs text-gray-500 mt-1">—</div>
+              <div class="flex items-center gap-1 mt-1">
+                <div id="secondaryPrice" class="text-xs text-gray-500">—</div>
+                <select id="secondaryCurrencySelect" class="no-print text-[11px] border-0 bg-transparent text-gray-400 hover:text-gray-600 cursor-pointer focus:outline-none" aria-label="Moneda de conversión secundaria">
+                  <option value="VES">→ Bs (VES)</option>
+                  <option value="USD">→ $ USD</option>
+                  <option value="BRL">→ R$ (BRL)</option>
+                  <option value="CLP">→ $ (CLP)</option>
+                  <option value="COP">→ $ (COP)</option>
+                  <option value="MXN">→ $ (MXN)</option>
+                  <option value="EUR">→ € (EUR)</option>
+                </select>
+              </div>
             </div>
 
             <div class="bg-emerald-50/40 rounded-xl p-3.5 flex flex-col items-end px-5 border border-emerald-100/50">
@@ -104,7 +146,7 @@
             </div>
           </div>
 
-          <div class="flex gap-3 justify-end no-print items-center flex-wrap">
+          <div id="rateRow" class="flex gap-3 justify-end no-print items-center flex-wrap">
             <span id="syncStatus" class="text-xs text-emerald-600 font-medium">🔄 Sincronizando tasa...</span>
             <label for="bcvRate" class="sr-only">Tasa Cambiaria</label>
             <input id="bcvRate" inputmode="decimal" type="number" step="0.0001" placeholder="Tasa manual" class="rounded-xl border px-3 py-2 text-sm w-32" />
@@ -196,20 +238,28 @@
     const printBtn = document.getElementById('printBtn');
     const copyBtn = document.getElementById('copyBtn');
     const secondaryPriceDiv = document.getElementById('secondaryPrice');
+    const secondaryCurrencySelect = document.getElementById('secondaryCurrencySelect');
+    const conversionNote = document.getElementById('conversionNote');
     const langSelect = document.getElementById('langSelect');
+    const installBtn = document.getElementById('installBtn');
 
     const LS_CURRENCY = 'pv_currency';
+    const LS_SECONDARY_CURRENCY = 'pv_secondary_currency';
     const LS_LANG = 'pv_lang';
     const LS_BCV = 'pv_bcv_rate'; // kept for backward compatibility (VES)
     const LS_MANUAL_RATES = 'pv_manual_rates'; // store manual overrides per currency
 
     let currency = localStorage.getItem(LS_CURRENCY) || 'USD';
+    let secondaryCurrency = localStorage.getItem(LS_SECONDARY_CURRENCY) || 'VES';
     let lang = localStorage.getItem(LS_LANG) || (navigator.language && navigator.language.startsWith('en') ? 'en' : 'es');
     let bcvRate = parseFloat(localStorage.getItem(LS_BCV)) || null;
     let manualRates = JSON.parse(localStorage.getItem(LS_MANUAL_RATES) || '{}');
     let exchangeRates = {}; // all rates from API, base = USD
 
     currencySelect.value = currency;
+    // Si la moneda secundaria elegida coincide con la principal, usar USD como alterna por defecto
+    if (secondaryCurrency === currency) secondaryCurrency = currency === 'USD' ? 'VES' : 'USD';
+    secondaryCurrencySelect.value = secondaryCurrency;
     langSelect.value = lang;
 
     function t(key) { return (i18n[lang] && i18n[lang][key]) || i18n['es'][key] || key; }
@@ -232,10 +282,35 @@
       updateRateInfo();
     }
 
+    // Determina a qué moneda debe aplicarse la tasa manual: nunca tiene sentido
+    // fijar una tasa "USD ⇄ USD", así que se usa la que realmente no sea USD.
+    function getRateTargetCurrency() {
+      if (currency !== 'USD') return currency;
+      if (secondaryCurrency !== 'USD') return secondaryCurrency;
+      return null; // ambas son USD, no hace falta ninguna tasa
+    }
+
+    function updateRateRowVisibility() {
+      const target = getRateTargetCurrency();
+      const rateRow = document.getElementById('rateRow');
+      if (!target) {
+        rateRow.classList.add('hidden');
+      } else {
+        rateRow.classList.remove('hidden');
+        bcvRateInput.placeholder = `Tasa manual (${target})`;
+      }
+    }
+
     function updateRateInfo() {
-      const availableRate = (exchangeRates && exchangeRates[currency]) || manualRates[currency] || (currency === 'VES' ? bcvRate : null);
+      const target = getRateTargetCurrency();
+      updateRateRowVisibility();
+      if (!target) {
+        rateInfo.textContent = '';
+        return;
+      }
+      const availableRate = (exchangeRates && exchangeRates[target]) || manualRates[target] || (target === 'VES' ? bcvRate : null);
       if (availableRate) {
-        rateInfo.textContent = `${t('rateSaved')} (1 USD ⇄ ${currency}): ${availableRate}`;
+        rateInfo.textContent = `${t('rateSaved')} (1 USD ⇄ ${target}): ${availableRate}`;
       } else {
         rateInfo.textContent = `${t('rateSaved')}: ${t('rateNone')}`;
       }
@@ -312,10 +387,22 @@
 
     function obtenerTasaParaMoneda(mon) {
       // Preferir override manual por moneda, luego la tasa cargada (base USD), luego bcvRate para VES
+      if (mon === 'USD') return 1;
       if (manualRates[mon]) return parseFloat(manualRates[mon]);
       if (exchangeRates[mon]) return parseFloat(exchangeRates[mon]);
       if (mon === 'VES' && bcvRate) return parseFloat(bcvRate);
       return null;
+    }
+
+    // Convierte un monto entre dos monedas cualesquiera usando USD como moneda pivote.
+    // Devuelve null si falta la tasa de alguna de las dos.
+    function convertirEntreMonedas(monto, monedaOrigen, monedaDestino) {
+      if (monedaOrigen === monedaDestino) return monto;
+      const tasaOrigen = obtenerTasaParaMoneda(monedaOrigen);
+      const tasaDestino = obtenerTasaParaMoneda(monedaDestino);
+      if (!tasaOrigen || !tasaDestino) return null;
+      const montoEnUsd = monto / tasaOrigen;
+      return montoEnUsd * tasaDestino;
     }
 
     function calcularPrecioFinal() {
@@ -354,33 +441,37 @@
       resultadoPrecioDiv.textContent = formatMoney(precioRounded, currency);
       resultadoGananciaSpan.textContent = formatMoney(gananciaRounded, currency);
 
-      // Mostrar el contra-valor secundario (si hay tasa)
-      const rate = obtenerTasaParaMoneda(currency);
-      if (currency === 'USD') {
-        // mostrar conversión a una moneda local si hay alguna manual/VES
-        if (exchangeRates.VES || manualRates.VES || bcvRate) {
-          const vesRate = obtenerTasaParaMoneda('VES');
-          if (vesRate) {
-            secondaryPriceDiv.textContent = `${formatMoney(precioRounded * vesRate, 'VES')} (1 USD = ${vesRate} VES)`;
-          } else {
-            secondaryPriceDiv.textContent = '—';
-          }
-        } else {
-          secondaryPriceDiv.textContent = '—';
-        }
+      // Mostrar el contra-valor en la moneda secundaria elegida por el usuario
+      // (antes esto estaba fijo a VES sin importar qué moneda quisiera ver el usuario)
+      if (currency === secondaryCurrency) {
+        secondaryPriceDiv.textContent = '—';
       } else {
-        // convertir de moneda local a USD usando rate (base: 1 USD = rate currency)
-        if (rate && rate > 0) {
-          const usdEquivalent = precioRounded / rate;
-          secondaryPriceDiv.textContent = `${formatMoney(usdEquivalent, 'USD')} (1 USD = ${rate} ${currency})`;
+        const montoConvertido = convertirEntreMonedas(precioRounded, currency, secondaryCurrency);
+        if (montoConvertido !== null) {
+          const rateOrigen = obtenerTasaParaMoneda(currency);
+          const rateDestino = obtenerTasaParaMoneda(secondaryCurrency);
+          const tasaMostrada = (rateDestino / rateOrigen).toPrecision(6);
+          secondaryPriceDiv.textContent = `${formatMoney(montoConvertido, secondaryCurrency)} (1 ${currency} = ${tasaMostrada} ${secondaryCurrency})`;
         } else {
           secondaryPriceDiv.textContent = '—';
         }
       }
     }
 
-    // Listeners para evaluar expresiones al salir del input o pulsar Enter
+    // Listeners para evaluar expresiones al salir del input o pulsar Enter,
+    // más una vista previa en vivo mientras se escribe un número simple
+    // (antes el resultado solo se actualizaba al salir del campo, lo cual
+    // se sentía "trabado" comparado con Transporte y Ganancia).
     [materialesInput, maquinaInput].forEach(input => {
+      input.addEventListener('input', () => {
+        // Vista previa en vivo: solo si lo escrito ya es un número válido.
+        // Si el usuario está a mitad de una expresión (ej: "10+"), no recalcula
+        // todavía; espera al blur/Enter donde sí se evalúa la expresión completa.
+        const preview = parseFloat(input.value);
+        if (!isNaN(preview) && isFinite(preview) && /^-?\d*\.?\d+$/.test(input.value.trim())) {
+          calcularPrecioFinal();
+        }
+      });
       input.addEventListener('blur', () => {
         evaluarExpresion(input);
         calcularPrecioFinal();
@@ -396,15 +487,84 @@
 
     [transporteInput, gananciaInput].forEach(i => i.addEventListener('input', calcularPrecioFinal));
 
+    function refreshRateInput() {
+      const target = getRateTargetCurrency();
+      if (!target) { bcvRateInput.value = ''; return; }
+      const manual = manualRates[target];
+      bcvRateInput.value = manual ? manual : (obtenerTasaParaMoneda(target) || '');
+    }
+
+    // Convierte los montos ya escritos en Materiales/Máquina de una moneda a otra
+    // cuando el usuario cambia la moneda principal, para no tener que volver a
+    // escribir la suma. Ej: 1500+800 en Bs (=2300) -> al pasar a Reais, se
+    // recalcula automáticamente el equivalente en Reais usando la tasa activa.
+    function convertirInputsDeMoneda(monedaOrigen, monedaDestino) {
+      if (monedaOrigen === monedaDestino) return;
+
+      // Primero resolver cualquier expresión pendiente (ej: "1500+800") a un número limpio.
+      const materialesVal = evaluarExpresion(materialesInput);
+      const maquinaVal = evaluarExpresion(maquinaInput);
+
+      const materialesConvertido = convertirEntreMonedas(materialesVal, monedaOrigen, monedaDestino);
+      const maquinaConvertido = convertirEntreMonedas(maquinaVal, monedaOrigen, monedaDestino);
+
+      if (materialesConvertido === null || maquinaConvertido === null) {
+        // No hay tasa disponible entre esas dos monedas todavía (p. ej. aún no sincroniza
+        // o falta una tasa manual). No tocamos los montos para no corromperlos con un
+        // valor incorrecto; solo avisamos.
+        conversionNote.textContent = lang === 'en'
+          ? `⚠️ Couldn't convert amounts from ${monedaOrigen} to ${monedaDestino}: exchange rate not available yet.`
+          : `⚠️ No se pudo convertir de ${monedaOrigen} a ${monedaDestino}: aún no hay tasa de cambio disponible.`;
+        conversionNote.classList.remove('hidden', 'text-gray-400');
+        conversionNote.classList.add('text-amber-600');
+        return;
+      }
+
+      materialesInput.value = (Math.round(materialesConvertido * 100) / 100);
+      maquinaInput.value = (Math.round(maquinaConvertido * 100) / 100);
+
+      const rateOrigen = obtenerTasaParaMoneda(monedaOrigen);
+      const rateDestino = obtenerTasaParaMoneda(monedaDestino);
+      const tasaCruzada = (rateDestino / rateOrigen).toPrecision(6);
+      conversionNote.textContent = lang === 'en'
+        ? `🔄 Amounts converted from ${monedaOrigen} to ${monedaDestino} (1 ${monedaOrigen} = ${tasaCruzada} ${monedaDestino}).`
+        : `🔄 Montos convertidos de ${monedaOrigen} a ${monedaDestino} (1 ${monedaOrigen} = ${tasaCruzada} ${monedaDestino}).`;
+      conversionNote.classList.remove('hidden', 'text-amber-600');
+      conversionNote.classList.add('text-gray-400');
+    }
+
     currencySelect.addEventListener('change', e => {
+      const oldCurrency = currency;
       currency = e.target.value;
       localStorage.setItem(LS_CURRENCY, currency);
       const symbol = currencySymbols[currency] || '$';
       currencySymbol.textContent = symbol;
       currencySymbol2.textContent = symbol;
-      // Si existe una tasa manual para la moneda seleccionada, show it in the input
-      const manual = manualRates[currency];
-      bcvRateInput.value = manual ? manual : (obtenerTasaParaMoneda(currency) || '');
+      // Si la moneda secundaria quedó igual a la principal, elegir otra automáticamente
+      if (secondaryCurrency === currency) {
+        secondaryCurrency = oldCurrency;
+        secondaryCurrencySelect.value = secondaryCurrency;
+        localStorage.setItem(LS_SECONDARY_CURRENCY, secondaryCurrency);
+      }
+      convertirInputsDeMoneda(oldCurrency, currency);
+      refreshRateInput();
+      updateRateInfo();
+      calcularPrecioFinal();
+    });
+
+    secondaryCurrencySelect.addEventListener('change', e => {
+      secondaryCurrency = e.target.value;
+      localStorage.setItem(LS_SECONDARY_CURRENCY, secondaryCurrency);
+      if (secondaryCurrency === currency) {
+        // Evitar elegir la misma moneda en ambos lados
+        currency = secondaryCurrency === 'USD' ? 'VES' : 'USD';
+        currencySelect.value = currency;
+        localStorage.setItem(LS_CURRENCY, currency);
+        const symbol = currencySymbols[currency] || '$';
+        currencySymbol.textContent = symbol;
+        currencySymbol2.textContent = symbol;
+      }
+      refreshRateInput();
       updateRateInfo();
       calcularPrecioFinal();
     });
@@ -417,13 +577,15 @@
     });
 
     saveRateBtn.addEventListener('click', () => {
+      const target = getRateTargetCurrency();
+      if (!target) return; // no debería poder hacer click si la fila está oculta
       const val = parseFloat(bcvRateInput.value);
       if (!isNaN(val) && isFinite(val) && val > 0) {
-        // Guardar como override manual para la moneda seleccionada
-        manualRates[currency] = val;
+        // Guardar como override manual para la moneda que realmente lo necesita
+        manualRates[target] = val;
         localStorage.setItem(LS_MANUAL_RATES, JSON.stringify(manualRates));
         // También mantener compatibilidad con bcvRate si es VES
-        if (currency === 'VES') {
+        if (target === 'VES') {
           bcvRate = val;
           localStorage.setItem(LS_BCV, String(val));
         }
@@ -483,15 +645,44 @@
       currencySymbol.textContent = symbol;
       currencySymbol2.textContent = symbol;
       applyTranslations();
+      refreshRateInput();
+      updateRateInfo();
       calcularPrecioFinal();
       // cargar manualRates guardadas (ya hecho al inicio), luego intentar sincronizar
       fetchExchangeRate();
-      // si había override manual para la moneda actual, mostrarlo en el input
-      if (manualRates[currency]) bcvRateInput.value = manualRates[currency];
-      else if (currency === 'VES' && bcvRate) bcvRateInput.value = bcvRate;
     }
 
     window.addEventListener('DOMContentLoaded', init);
+
+    // --- PWA: registro del Service Worker ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => {
+          console.warn('No se pudo registrar el service worker:', err);
+        });
+      });
+    }
+
+    // --- PWA: botón de instalación (evento beforeinstallprompt) ---
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      installBtn.classList.remove('hidden');
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      installBtn.classList.add('hidden');
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBtn.classList.add('hidden');
+      deferredInstallPrompt = null;
+    });
   </script>
 </body>
 </html>
