@@ -1,688 +1,301 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Calculadora de Precio de Venta Global (Beta)</title>
-
-  <!-- PWA -->
-  <meta name="theme-color" content="#10b981" />
-  <meta name="description" content="Calcula el precio de venta y margen neto de tus productos en varias monedas." />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icon-192.png" type="image/png" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Precio Venta" />
-
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
-    @media print {
-      body { background: #fff !important; color: #000 !important; }
-      .no-print { display: none !important; }
-      .printable { box-shadow: none !important; border: none !important; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Prendas</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --surface-0:#f5f4f0;--surface-1:#eeede8;--surface-2:#ffffff;
+    --text-primary:#1a1a18;--text-secondary:#5f5e5a;--text-muted:#9a9992;
+    --text-accent:#185fa5;--text-success:#0f6e56;--text-danger:#a32d2d;--text-warning:#854f0b;
+    --border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.16);
+    --border-accent:#b5d4f4;--border-danger:#f7c1c1;
+    --bg-success:#e1f5ee;--bg-warning:#faeeda;--bg-danger:#fcebeb;
+    --border-success:#9fe1cb;--border-warning:#fac775;
+    --radius:8px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --surface-0:#1a1a18;--surface-1:#232320;--surface-2:#2c2c2a;
+      --text-primary:#f0efe8;--text-secondary:#a8a79f;--text-muted:#6e6d67;
+      --text-accent:#85b7eb;--text-success:#5dcaa5;--text-danger:#f09595;--text-warning:#ef9f27;
+      --border:rgba(255,255,255,0.09);--border-strong:rgba(255,255,255,0.15);
+      --border-accent:#185fa5;--border-danger:#a32d2d;
+      --bg-success:#085041;--bg-warning:#633806;--bg-danger:#791f1f;
+      --border-success:#1d9e75;--border-warning:#ba7517;
     }
-    .beta-badge {
-      background: #ecfdf5;
-      color: #047857;
-      border: 1px solid #a7f3d0;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      padding: 2px 8px;
-      border-radius: 999px;
-      text-transform: uppercase;
-    }
-  </style>
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--surface-0);color:var(--text-primary);min-height:100vh;padding:1.5rem 1rem}
+  .container{max-width:580px;margin:0 auto}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px}
+  .page-title{font-size:22px;font-weight:500;display:flex;align-items:center;gap:8px}
+  .page-title i{font-size:22px;color:var(--text-accent)}
+  .bcv-badge{display:flex;align-items:center;gap:6px;background:var(--bg-success);border:0.5px solid var(--border-success);border-radius:var(--radius);padding:6px 12px;font-size:13px;color:var(--text-success);transition:all .3s;cursor:default}
+  .bcv-badge.loading{background:var(--bg-warning);border-color:var(--border-warning);color:var(--text-warning)}
+  .bcv-badge.error{background:var(--bg-danger);border-color:var(--border-danger);color:var(--text-danger)}
+  .bcv-badge i{font-size:15px}
+  .section{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.9rem}
+  .section-title{font-size:12px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;display:flex;align-items:center;gap:6px}
+  .field-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;margin-bottom:.55rem}
+  .field-row:last-child{margin-bottom:0}
+  .field-label{font-size:14px;color:var(--text-primary)}
+  .field-label small{display:block;font-size:12px;color:var(--text-secondary)}
+  .field-right{display:flex;align-items:center;gap:6px}
+  .field-right input,.acc-input{font-size:14px;padding:6px 10px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);outline:none;transition:border-color .15s;text-align:right}
+  .field-right input{width:110px}
+  .field-right input:focus,.acc-input:focus{border-color:var(--border-accent)}
+  .currency-tag{font-size:12px;color:var(--text-muted);min-width:22px}
+  .acc-header{display:grid;grid-template-columns:1fr 62px 100px 28px;gap:8px;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;padding:0 2px}
+  .acc-item{display:grid;grid-template-columns:1fr 62px 100px 28px;align-items:center;gap:8px;margin-bottom:.4rem}
+  .acc-item:last-child{margin-bottom:0}
+  .acc-name{font-size:14px;color:var(--text-primary)}
+  .acc-input{font-size:13px;padding:5px 8px;width:100%}
+  .remove-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;padding:4px;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:color .15s}
+  .remove-btn:hover{color:var(--text-danger)}
+  .divider{height:0.5px;background:var(--border);margin:.75rem 0}
+  .add-row{display:flex;gap:6px;flex-wrap:wrap}
+  .add-row input{flex:1;min-width:100px;font-size:13px;padding:6px 9px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);outline:none;text-align:left}
+  .add-row input:focus{border-color:var(--border-accent)}
+  .add-btn{display:flex;align-items:center;gap:5px;padding:6px 14px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);cursor:pointer;white-space:nowrap;transition:background .15s}
+  .add-btn:hover{background:var(--surface-1)}
+  .profit-row{display:flex;align-items:center;gap:12px}
+  .profit-row label{font-size:14px;color:var(--text-primary);white-space:nowrap}
+  .profit-row input[type=range]{flex:1;accent-color:var(--text-accent);cursor:pointer}
+  .profit-val{font-size:16px;font-weight:500;color:var(--text-accent);min-width:46px;text-align:right}
+  .result-card{background:var(--surface-2);border:0.5px solid var(--border-strong);border-radius:12px;padding:1.25rem;margin-bottom:.5rem}
+  .result-label{font-size:12px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+  .metric{background:var(--surface-1);border-radius:var(--radius);padding:.75rem 1rem}
+  .metric-label{font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+  .metric-val{font-size:24px;font-weight:500;color:var(--text-primary);line-height:1.1}
+  .metric-val.accent{color:var(--text-accent)}
+  .metric-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+  .breakdown{font-size:13px;color:var(--text-secondary)}
+  .br-row{display:flex;justify-content:space-between;padding:3px 0}
+  .br-row.subtotal{font-weight:500;color:var(--text-primary);border-top:0.5px solid var(--border);margin-top:4px;padding-top:6px}
+  .br-row.ganancia-line{color:var(--text-success)}
+  .br-row.total{font-weight:500;color:var(--text-primary);border-top:0.5px solid var(--border);margin-top:2px;padding-top:6px}
+  .footer{text-align:center;font-size:12px;color:var(--text-muted);margin-top:1.5rem;padding-bottom:1rem;line-height:1.8}
+  .footer a{color:var(--text-accent)}
+  .refresh-link{background:none;border:none;cursor:pointer;color:var(--text-accent);font-size:12px;text-decoration:underline;padding:0}
+  @media(max-width:440px){.result-grid{grid-template-columns:1fr}.acc-header,.acc-item{grid-template-columns:1fr 54px 88px 26px}}
+</style>
 </head>
-<body class="bg-[#f9fafb] text-[#111827] min-h-screen flex items-center justify-center p-4 sm:p-6">
-  <div class="w-full max-w-2xl">
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-6 printable">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-xl font-semibold tracking-tight text-gray-900" id="title">Precio de Venta y Margen Neto</h1>
-            <span class="beta-badge" id="betaBadge">Beta</span>
-          </div>
-          <p class="text-sm text-gray-500" id="subtitle">Calcula el precio final cobrando exactamente el margen de ganancia que deseas recibir libre.</p>
-        </div>
+<body>
+<div class="container">
 
-        <div class="flex gap-3 items-center no-print">
-          <label for="langSelect" class="text-xs text-gray-500">Idioma</label>
-          <select id="langSelect" class="rounded-xl border px-3 py-2 text-sm">
-            <option value="es">Español</option>
-            <option value="en">English</option>
-          </select>
-
-          <label for="currencySelect" class="text-xs text-gray-500">Moneda</label>
-          <select id="currencySelect" class="rounded-xl border px-3 py-2 text-sm">
-            <option value="USD">$ USD</option>
-            <option value="VES">Bs (VES)</option>
-            <option value="BRL">R$ (BRL)</option>
-            <option value="CLP">$ (CLP)</option>
-            <option value="COP">$ (COP)</option>
-            <option value="MXN">$ (MXN)</option>
-            <option value="EUR">€ (EUR)</option>
-          </select>
-
-          <button id="installBtn" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100 whitespace-nowrap">
-            📲 Instalar App
-          </button>
-        </div>
-      </div>
-
-      <p id="conversionNote" class="text-[11px] text-gray-400 no-print hidden"></p>
-
-      <hr class="border-gray-100" />
-
-      <div class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label id="labelMateriales" for="materiales" class="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Materiales usados en la pieza</label>
-            <div class="relative">
-              <span class="absolute left-4 top-3.5 text-xs text-gray-400 pointer-events-none" id="currencySymbol">$</span>
-              <input type="text" id="materiales" value="3.50" aria-label="Materiales" placeholder="Ej: 4500 + 3500"
-                class="w-full bg-gray-50/50 border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all" />
-            </div>
-            <p class="text-[10px] text-gray-400 mt-1">Puedes escribir sumas directamente (ej: 10+5+2.5)</p>
-          </div>
-
-          <div>
-            <label id="labelMaquina" for="maquina" class="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Amortización / Servicio de Máquina</label>
-            <div class="relative">
-              <span class="absolute left-4 top-3.5 text-xs text-gray-400 pointer-events-none" id="currencySymbol2">$</span>
-              <input type="text" id="maquina" value="1.50" aria-label="Maquina" placeholder="Ej: 1.50 + 2"
-                class="w-full bg-gray-50/50 border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all" />
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label id="labelTransporte" for="transporte" class="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Recargo por Transporte (% por pieza)</label>
-            <div class="relative">
-              <input inputmode="decimal" lang="es" type="number" id="transporte" value="10" min="0" max="100" step="0.01"
-                class="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all" />
-              <span class="absolute right-4 top-3.5 text-xs text-gray-400 pointer-events-none">%</span>
-            </div>
-          </div>
-
-          <div>
-            <label id="labelGanancia" for="ganancia" class="block text-xs font-medium uppercase tracking-wider text-gray-500 mb-2">Porcentaje de Ganancia Neta Deseada</label>
-            <div class="relative">
-              <input inputmode="decimal" lang="es" type="number" id="ganancia" value="40" min="0" max="95" step="0.01"
-                class="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all" />
-              <span class="absolute right-4 top-3.5 text-xs text-gray-400 pointer-events-none">%</span>
-            </div>
-            <p class="text-[11px] text-gray-400 mt-1" id="gananciaHelp">El % del precio final que será tu ganancia neta absoluta.</p>
-            <p id="errorMsg" class="text-[11px] text-red-500 mt-1 hidden" role="alert"></p>
-          </div>
-        </div>
-
-        <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100/50 space-y-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <span class="block text-xs font-medium uppercase tracking-wider text-gray-400" id="labelPrecioSugerido">Precio de Venta Sugerido</span>
-              <div id="resultadoPrecio" class="text-3xl sm:text-4xl font-bold tracking-tight text-[#10b981]" role="status" aria-live="polite">$0.00</div>
-              <div class="flex items-center gap-1 mt-1">
-                <div id="secondaryPrice" class="text-xs text-gray-500">—</div>
-                <select id="secondaryCurrencySelect" class="no-print text-[11px] border-0 bg-transparent text-gray-400 hover:text-gray-600 cursor-pointer focus:outline-none" aria-label="Moneda de conversión secundaria">
-                  <option value="VES">→ Bs (VES)</option>
-                  <option value="USD">→ $ USD</option>
-                  <option value="BRL">→ R$ (BRL)</option>
-                  <option value="CLP">→ $ (CLP)</option>
-                  <option value="COP">→ $ (COP)</option>
-                  <option value="MXN">→ $ (MXN)</option>
-                  <option value="EUR">→ € (EUR)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="bg-emerald-50/40 rounded-xl p-3.5 flex flex-col items-end px-5 border border-emerald-100/50">
-              <span class="text-xs font-medium text-emerald-800 uppercase tracking-wider" id="labelGananciaLimpia">Tu Ganancia Limpia:</span>
-              <span id="resultadoGanancia" class="text-base font-semibold text-emerald-700" role="status" aria-live="polite">$0.00</span>
-            </div>
-          </div>
-
-          <div id="rateRow" class="flex gap-3 justify-end no-print items-center flex-wrap">
-            <span id="syncStatus" class="text-xs text-emerald-600 font-medium">🔄 Sincronizando tasa...</span>
-            <label for="bcvRate" class="sr-only">Tasa Cambiaria</label>
-            <input id="bcvRate" inputmode="decimal" type="number" step="0.0001" placeholder="Tasa manual" class="rounded-xl border px-3 py-2 text-sm w-32" />
-            <button id="saveRateBtn" class="rounded-xl border px-3 py-2 text-sm bg-white hover:bg-gray-50">Fijar Tasa</button>
-          </div>
-        </div>
-
-        <div class="flex gap-3 justify-between items-center no-print">
-          <div class="text-sm text-gray-500" id="rateInfo">Tasa actual: —</div>
-          <div class="flex gap-2">
-            <button id="copyBtn" class="rounded-xl border px-4 py-2 text-sm bg-white hover:bg-gray-50">Copiar resultados</button>
-            <button id="csvBtn" class="rounded-xl border px-4 py-2 text-sm bg-white hover:bg-gray-50">Exportar CSV</button>
-            <button id="printBtn" class="rounded-xl border px-4 py-2 text-sm bg-white hover:bg-gray-50">Imprimir</button>
-          </div>
-        </div>
-      </div>
+  <div class="header">
+    <div class="page-title">
+      <i class="ti ti-scissors" aria-hidden="true"></i>
+      Calculadora de prendas
     </div>
-
-    <div class="mt-4 text-xs text-gray-400">
-      <p id="disclaimer">Nota: La tasa de cambio con respecto al USD se actualiza de forma automática en cada carga.</p>
+    <div class="bcv-badge loading" id="bcvBadge">
+      <i class="ti ti-refresh" aria-hidden="true" id="bcvIcon"></i>
+      <span id="bcvText">Consultando BCV...</span>
     </div>
   </div>
 
-  <script>
-    // Diccionario de Símbolos de Monedas
-    const currencySymbols = {
-      USD: '$', VES: 'Bs', BRL: 'R$', CLP: '$', COP: '$', MXN: '$', EUR: '€'
-    };
+  <div class="section">
+    <div class="section-title"><i class="ti ti-roll" aria-hidden="true"></i> Tela</div>
+    <div class="field-row">
+      <div class="field-label">Metros por prenda</div>
+      <div class="field-right">
+        <input type="number" id="telaMetros" value="1.5" min="0" step="0.1">
+        <span class="currency-tag">m</span>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-label">Precio por metro<small>en USD</small></div>
+      <div class="field-right">
+        <input type="number" id="telaPrecio" value="5" min="0" step="0.5">
+        <span class="currency-tag">$</span>
+      </div>
+    </div>
+  </div>
 
-    const i18n = {
-      es: {
-        title: 'Precio de Venta y Margen Neto',
-        subtitle: 'Calcula el precio final cobrando exactamente el margen de ganancia que deseas recibir libre.',
-        materiales: 'Materiales usados en la pieza',
-        maquina: 'Amortización / Servicio de Máquina',
-        transporte: 'Recargo por Transporte (% por pieza)',
-        ganancia: 'Porcentaje de Ganancia Neta Deseada',
-        gananciaHelp: 'El % del precio final que será tu ganancia neta absoluta.',
-        errorPercent: 'El porcentaje de ganancia debe ser menor que 100%.',
-        errorNegative: 'Los valores no pueden ser negativos.',
-        precioSugerido: 'Precio de Venta Sugerido',
-        tuGanancia: 'Tu Ganancia Limpia:',
-        saveBtn: 'Fijar Tasa',
-        rateSaved: 'Tasa activa',
-        rateNone: '—',
-        copyBtn: 'Copiar resultados',
-        csvBtn: 'Exportar CSV',
-        printBtn: 'Imprimir',
-        disclaimer: 'Nota: La tasa de cambio con respecto al USD se sincroniza automáticamente.'
-      },
-      en: {
-        title: 'Sale Price & Net Margin',
-        subtitle: 'Calculate the final price charging exactly the net profit margin you want to receive.',
-        materiales: 'Materials used in the piece',
-        maquina: 'Machine amortization / service',
-        transporte: 'Transport surcharge (% per piece)',
-        ganancia: 'Desired Net Profit Percentage',
-        gananciaHelp: 'The % of the final price that will be your absolute net profit.',
-        errorPercent: 'Profit percentage must be less than 100%.',
-        errorNegative: 'Values cannot be negative.',
-        precioSugerido: 'Suggested Sale Price',
-        tuGanancia: 'Your Net Profit:',
-        saveBtn: 'Set Rate',
-        rateSaved: 'Active Rate',
-        rateNone: '—',
-        copyBtn: 'Copy results',
-        csvBtn: 'Export CSV',
-        printBtn: 'Print',
-        disclaimer: 'Note: The exchange rate relative to USD synchronizes automatically.'
-      }
-    };
+  <div class="section">
+    <div class="section-title"><i class="ti ti-needle-thread" aria-hidden="true"></i> Accesorios</div>
+    <div class="acc-header">
+      <span>Artículo</span><span style="text-align:right">Cant.</span><span style="text-align:right">$ c/u</span><span></span>
+    </div>
+    <div id="accesoriosList">
+      <div class="acc-item" data-id="1">
+        <span class="acc-name">Cierre</span>
+        <input type="number" class="acc-input acc-qty" value="1" min="0" step="1" oninput="calcular()">
+        <input type="number" class="acc-input acc-price" value="0.50" min="0" step="0.1" oninput="calcular()">
+        <button class="remove-btn" onclick="removeAcc(1)" aria-label="Eliminar"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="acc-item" data-id="2">
+        <span class="acc-name">Botones</span>
+        <input type="number" class="acc-input acc-qty" value="6" min="0" step="1" oninput="calcular()">
+        <input type="number" class="acc-input acc-price" value="0.10" min="0" step="0.05" oninput="calcular()">
+        <button class="remove-btn" onclick="removeAcc(2)" aria-label="Eliminar"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="acc-item" data-id="3">
+        <span class="acc-name">Logo / etiqueta</span>
+        <input type="number" class="acc-input acc-qty" value="1" min="0" step="1" oninput="calcular()">
+        <input type="number" class="acc-input acc-price" value="0.30" min="0" step="0.1" oninput="calcular()">
+        <button class="remove-btn" onclick="removeAcc(3)" aria-label="Eliminar"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="acc-item" data-id="4">
+        <span class="acc-name">Bolsa de entrega</span>
+        <input type="number" class="acc-input acc-qty" value="1" min="0" step="1" oninput="calcular()">
+        <input type="number" class="acc-input acc-price" value="0.20" min="0" step="0.05" oninput="calcular()">
+        <button class="remove-btn" onclick="removeAcc(4)" aria-label="Eliminar"><i class="ti ti-x"></i></button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="add-row">
+      <input type="text" id="newAccName" placeholder="Nombre del accesorio">
+      <input type="number" id="newAccQty" value="1" min="1" step="1" style="width:62px;flex:unset;text-align:right" placeholder="cant">
+      <input type="number" id="newAccPrice" value="0" min="0" step="0.1" style="width:88px;flex:unset;text-align:right" placeholder="$ c/u">
+      <button class="add-btn" onclick="addAcc()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
+    </div>
+  </div>
 
-    // Element refs
-    const materialesInput = document.getElementById('materiales');
-    const maquinaInput = document.getElementById('maquina');
-    const transporteInput = document.getElementById('transporte');
-    const gananciaInput = document.getElementById('ganancia');
-    const resultadoPrecioDiv = document.getElementById('resultadoPrecio');
-    const resultadoGananciaSpan = document.getElementById('resultadoGanancia');
-    const errorMsg = document.getElementById('errorMsg');
-    const currencySelect = document.getElementById('currencySelect');
-    const currencySymbol = document.getElementById('currencySymbol');
-    const currencySymbol2 = document.getElementById('currencySymbol2');
-    const bcvRateInput = document.getElementById('bcvRate');
-    const saveRateBtn = document.getElementById('saveRateBtn');
-    const rateInfo = document.getElementById('rateInfo');
-    const syncStatus = document.getElementById('syncStatus');
-    const csvBtn = document.getElementById('csvBtn');
-    const printBtn = document.getElementById('printBtn');
-    const copyBtn = document.getElementById('copyBtn');
-    const secondaryPriceDiv = document.getElementById('secondaryPrice');
-    const secondaryCurrencySelect = document.getElementById('secondaryCurrencySelect');
-    const conversionNote = document.getElementById('conversionNote');
-    const langSelect = document.getElementById('langSelect');
-    const installBtn = document.getElementById('installBtn');
+  <div class="section">
+    <div class="section-title"><i class="ti ti-sewing-machine" aria-hidden="true"></i> Costurera</div>
+    <div class="field-row">
+      <div class="field-label">Pago por prenda<small>en USD</small></div>
+      <div class="field-right">
+        <input type="number" id="costurera" value="8" min="0" step="0.5">
+        <span class="currency-tag">$</span>
+      </div>
+    </div>
+  </div>
 
-    const LS_CURRENCY = 'pv_currency';
-    const LS_SECONDARY_CURRENCY = 'pv_secondary_currency';
-    const LS_LANG = 'pv_lang';
-    const LS_BCV = 'pv_bcv_rate'; // kept for backward compatibility (VES)
-    const LS_MANUAL_RATES = 'pv_manual_rates'; // store manual overrides per currency
+  <div class="section">
+    <div class="section-title"><i class="ti ti-trending-up" aria-hidden="true"></i> Ganancia</div>
+    <div class="profit-row">
+      <label for="ganancia">Porcentaje</label>
+      <input type="range" id="ganancia" min="5" max="200" value="50" step="5"
+        oninput="document.getElementById('gananciaVal').textContent=this.value+'%';calcular()">
+      <span class="profit-val" id="gananciaVal">50%</span>
+    </div>
+  </div>
 
-    let currency = localStorage.getItem(LS_CURRENCY) || 'USD';
-    let secondaryCurrency = localStorage.getItem(LS_SECONDARY_CURRENCY) || 'VES';
-    let lang = localStorage.getItem(LS_LANG) || (navigator.language && navigator.language.startsWith('en') ? 'en' : 'es');
-    let bcvRate = parseFloat(localStorage.getItem(LS_BCV)) || null;
-    let manualRates = JSON.parse(localStorage.getItem(LS_MANUAL_RATES) || '{}');
-    let exchangeRates = {}; // all rates from API, base = USD
+  <div class="result-card">
+    <div class="result-label">Precio de venta</div>
+    <div class="result-grid">
+      <div class="metric">
+        <div class="metric-label">En dólares</div>
+        <div class="metric-val accent" id="resUSD">$0.00</div>
+        <div class="metric-sub">USD</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">En bolívares</div>
+        <div class="metric-val" id="resBS">Bs —</div>
+        <div class="metric-sub" id="tasaRef">tasa BCV</div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="breakdown" id="breakdown"></div>
+  </div>
 
-    currencySelect.value = currency;
-    // Si la moneda secundaria elegida coincide con la principal, usar USD como alterna por defecto
-    if (secondaryCurrency === currency) secondaryCurrency = currency === 'USD' ? 'VES' : 'USD';
-    secondaryCurrencySelect.value = secondaryCurrency;
-    langSelect.value = lang;
+  <div class="footer">
+    Tasa BCV oficial vía <a href="https://bcv.today" target="_blank">bcv.today</a> ·
+    <button class="refresh-link" onclick="fetchBCV()">actualizar</button>
+  </div>
 
-    function t(key) { return (i18n[lang] && i18n[lang][key]) || i18n['es'][key] || key; }
+</div>
+<script>
+let tasaBCV = null;
+let accIdCounter = 5;
 
-    function applyTranslations() {
-      document.getElementById('title').textContent = t('title');
-      document.getElementById('subtitle').textContent = t('subtitle');
-      document.getElementById('labelMateriales').textContent = t('materiales');
-      document.getElementById('labelMaquina').textContent = t('maquina');
-      document.getElementById('labelTransporte').textContent = t('transporte');
-      document.getElementById('labelGanancia').textContent = t('ganancia');
-      document.getElementById('gananciaHelp').textContent = t('gananciaHelp');
-      document.getElementById('labelPrecioSugerido').textContent = t('precioSugerido');
-      document.getElementById('labelGananciaLimpia').textContent = t('tuGanancia');
-      saveRateBtn.textContent = t('saveBtn');
-      csvBtn.textContent = t('csvBtn');
-      printBtn.textContent = t('printBtn');
-      copyBtn.textContent = t('copyBtn');
-      document.getElementById('disclaimer').textContent = t('disclaimer');
-      updateRateInfo();
-    }
+async function fetchBCV() {
+  const badge = document.getElementById('bcvBadge');
+  const txt = document.getElementById('bcvText');
+  badge.className = 'bcv-badge loading';
+  txt.textContent = 'Consultando BCV...';
+  try {
+    const res = await fetch('https://bcv.today/api/v1/rate.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('http ' + res.status);
+    const data = await res.json();
+    // El JSON tiene: { usd: { rate: 764.34, date: "2026-08-12" }, ... }
+    const rate = data?.usd?.rate ?? data?.USD?.rate ?? data?.rate ?? null;
+    if (!rate || isNaN(rate)) throw new Error('formato inesperado');
+    tasaBCV = parseFloat(rate);
+    const fecha = data?.usd?.date ?? data?.USD?.date ?? '';
+    badge.className = 'bcv-badge';
+    txt.innerHTML = '<strong>Bs ' + tasaBCV.toFixed(2) + '</strong> / $1';
+    document.getElementById('tasaRef').textContent = 'BCV oficial' + (fecha ? ' · ' + fecha : '');
+  } catch(e) {
+    badge.className = 'bcv-badge error';
+    txt.innerHTML = 'Sin tasa — <button class="refresh-link" onclick="fetchBCV()">reintentar</button>';
+    tasaBCV = null;
+    document.getElementById('tasaRef').textContent = 'tasa BCV no disponible';
+  }
+  calcular();
+}
 
-    // Determina a qué moneda debe aplicarse la tasa manual: nunca tiene sentido
-    // fijar una tasa "USD ⇄ USD", así que se usa la que realmente no sea USD.
-    function getRateTargetCurrency() {
-      if (currency !== 'USD') return currency;
-      if (secondaryCurrency !== 'USD') return secondaryCurrency;
-      return null; // ambas son USD, no hace falta ninguna tasa
-    }
+function getAccesoriosTotal() {
+  let t = 0;
+  document.querySelectorAll('#accesoriosList .acc-item').forEach(row => {
+    t += (parseFloat(row.querySelector('.acc-qty').value) || 0) *
+         (parseFloat(row.querySelector('.acc-price').value) || 0);
+  });
+  return t;
+}
 
-    function updateRateRowVisibility() {
-      const target = getRateTargetCurrency();
-      const rateRow = document.getElementById('rateRow');
-      if (!target) {
-        rateRow.classList.add('hidden');
-      } else {
-        rateRow.classList.remove('hidden');
-        bcvRateInput.placeholder = `Tasa manual (${target})`;
-      }
-    }
+function calcular() {
+  const metros = parseFloat(document.getElementById('telaMetros').value) || 0;
+  const pTela  = parseFloat(document.getElementById('telaPrecio').value) || 0;
+  const costTela = metros * pTela;
+  const costAcc  = getAccesoriosTotal();
+  const costCost = parseFloat(document.getElementById('costurera').value) || 0;
+  const pct = parseFloat(document.getElementById('ganancia').value) || 0;
+  const base = costTela + costAcc + costCost;
+  const ganancia = base * (pct / 100);
+  const precioUSD = base + ganancia;
+  document.getElementById('resUSD').textContent = '$' + precioUSD.toFixed(2);
+  document.getElementById('resBS').textContent = tasaBCV
+    ? 'Bs ' + Math.round(precioUSD * tasaBCV).toLocaleString('es-VE')
+    : 'Bs —';
+  document.getElementById('breakdown').innerHTML =
+    '<div class="br-row"><span>Tela (' + metros + 'm × $' + pTela.toFixed(2) + ')</span><span>$' + costTela.toFixed(2) + '</span></div>' +
+    '<div class="br-row"><span>Accesorios</span><span>$' + costAcc.toFixed(2) + '</span></div>' +
+    '<div class="br-row"><span>Costurera</span><span>$' + costCost.toFixed(2) + '</span></div>' +
+    '<div class="br-row subtotal"><span>Costo total</span><span>$' + base.toFixed(2) + '</span></div>' +
+    '<div class="br-row ganancia-line"><span>Ganancia (' + pct + '%)</span><span>+$' + ganancia.toFixed(2) + '</span></div>' +
+    '<div class="br-row total"><span><strong>Precio de venta</strong></span><span><strong>$' + precioUSD.toFixed(2) + '</strong></span></div>';
+}
 
-    function updateRateInfo() {
-      const target = getRateTargetCurrency();
-      updateRateRowVisibility();
-      if (!target) {
-        rateInfo.textContent = '';
-        return;
-      }
-      const availableRate = (exchangeRates && exchangeRates[target]) || manualRates[target] || (target === 'VES' ? bcvRate : null);
-      if (availableRate) {
-        rateInfo.textContent = `${t('rateSaved')} (1 USD ⇄ ${target}): ${availableRate}`;
-      } else {
-        rateInfo.textContent = `${t('rateSaved')}: ${t('rateNone')}`;
-      }
-    }
+function removeAcc(id) {
+  const el = document.querySelector('[data-id="' + id + '"]');
+  if (el) { el.remove(); calcular(); }
+}
 
-    // Evaluador matemático seguro para los inputs de texto
-    function evaluarExpresion(inputElement) {
-      let expresion = inputElement.value.trim();
-      if (!expresion) {
-        inputElement.value = 0;
-        return 0;
-      }
+function addAcc() {
+  const name = document.getElementById('newAccName').value.trim();
+  if (!name) {
+    document.getElementById('newAccName').style.borderColor = 'var(--border-danger)';
+    document.getElementById('newAccName').focus();
+    return;
+  }
+  document.getElementById('newAccName').style.borderColor = '';
+  const qty   = parseFloat(document.getElementById('newAccQty').value) || 1;
+  const price = parseFloat(document.getElementById('newAccPrice').value) || 0;
+  const id = accIdCounter++;
+  const div = document.createElement('div');
+  div.className = 'acc-item'; div.dataset.id = id;
+  div.innerHTML =
+    '<span class="acc-name">' + name + '</span>' +
+    '<input type="number" class="acc-input acc-qty" value="' + qty + '" min="0" step="1" oninput="calcular()">' +
+    '<input type="number" class="acc-input acc-price" value="' + price.toFixed(2) + '" min="0" step="0.1" oninput="calcular()">' +
+    '<button class="remove-btn" onclick="removeAcc(' + id + ')" aria-label="Eliminar"><i class="ti ti-x"></i></button>';
+  document.getElementById('accesoriosList').appendChild(div);
+  document.getElementById('newAccName').value = '';
+  document.getElementById('newAccQty').value = '1';
+  document.getElementById('newAccPrice').value = '0';
+  calcular();
+}
 
-      // Limpieza segura: Solo permite números, +, -, *, /, ., paréntesis y espacios
-      expresion = expresion.replace(/[^0-9+\-*/.() ]/g, '');
-
-      try {
-        // Ejecuta la expresión de forma aislada
-        const resultado = Function(`"use strict"; return (${expresion})`)();
-        if (typeof resultado === 'number' && isFinite(resultado)) {
-          const rounded = Math.round(resultado * 100) / 100;
-          inputElement.value = rounded;
-          return rounded;
-        }
-      } catch (e) {
-        // Si la expresión está incompleta o inválida, no cambiar el valor
-        console.warn('Expresión no evaluable:', expresion, e);
-      }
-      return parseFloat(inputElement.value) || 0;
-    }
-
-    function formatMoney(value, cur = currency) {
-      if (typeof value !== 'number' || !isFinite(value)) return '—';
-      try {
-        return new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'es-ES', {
-          style: 'currency',
-          currency: cur,
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(value);
-      } catch (e) {
-        return `${currencySymbols[cur] || '$'} ${value.toFixed(2)}`;
-      }
-    }
-
-    // Consumo automático de API Cambiaria (Sincronización automática de tasas)
-    async function fetchExchangeRate() {
-      try {
-        syncStatus.textContent = '🔄 Sincronizando...';
-        const res = await fetch('https://open.er-api.com/v6/latest/USD', { cache: 'no-cache' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (data && data.rates) {
-          exchangeRates = data.rates;
-          // mantener compatibilidad: bcvRate sigue siendo VES si existe
-          if (data.rates.VES) {
-            bcvRate = parseFloat(data.rates.VES);
-            localStorage.setItem(LS_BCV, String(bcvRate));
-            bcvRateInput.value = bcvRate.toFixed(4);
-          }
-          syncStatus.textContent = '✅ Tasas al día';
-          updateRateInfo();
-          calcularPrecioFinal();
-        } else {
-          throw new Error('Formato inesperado de la respuesta de tasas');
-        }
-      } catch (err) {
-        syncStatus.textContent = '⚠️ Error de red. Usando local o manual.';
-        console.error('No se pudo automatizar la tasa cambiaria:', err);
-        updateRateInfo();
-      }
-    }
-
-    function obtenerTasaParaMoneda(mon) {
-      // Preferir override manual por moneda, luego la tasa cargada (base USD), luego bcvRate para VES
-      if (mon === 'USD') return 1;
-      if (manualRates[mon]) return parseFloat(manualRates[mon]);
-      if (exchangeRates[mon]) return parseFloat(exchangeRates[mon]);
-      if (mon === 'VES' && bcvRate) return parseFloat(bcvRate);
-      return null;
-    }
-
-    // Convierte un monto entre dos monedas cualesquiera usando USD como moneda pivote.
-    // Devuelve null si falta la tasa de alguna de las dos.
-    function convertirEntreMonedas(monto, monedaOrigen, monedaDestino) {
-      if (monedaOrigen === monedaDestino) return monto;
-      const tasaOrigen = obtenerTasaParaMoneda(monedaOrigen);
-      const tasaDestino = obtenerTasaParaMoneda(monedaDestino);
-      if (!tasaOrigen || !tasaDestino) return null;
-      const montoEnUsd = monto / tasaOrigen;
-      return montoEnUsd * tasaDestino;
-    }
-
-    function calcularPrecioFinal() {
-      errorMsg.classList.add('hidden');
-      errorMsg.textContent = '';
-
-      const materiales = parseFloat(materialesInput.value) || 0;
-      const maquina = parseFloat(maquinaInput.value) || 0;
-      const transportePorcentaje = parseFloat(transporteInput.value) || 0;
-      const gananciaPorcentaje = parseFloat(gananciaInput.value) || 0;
-
-      if (gananciaPorcentaje >= 100) {
-        resultadoPrecioDiv.textContent = '—';
-        resultadoGananciaSpan.textContent = '—';
-        errorMsg.textContent = t('errorPercent');
-        errorMsg.classList.remove('hidden');
-        return;
-      }
-      if (gananciaPorcentaje < 0 || transportePorcentaje < 0 || materiales < 0 || maquina < 0) {
-        resultadoPrecioDiv.textContent = '—';
-        resultadoGananciaSpan.textContent = '—';
-        errorMsg.textContent = t('errorNegative');
-        errorMsg.classList.remove('hidden');
-        return;
-      }
-
-      const costoDirecto = materiales + maquina;
-      const costoTotalFabricacion = costoDirecto * (1 + (transportePorcentaje / 100));
-      const margenFactor = 1 - (gananciaPorcentaje / 100);
-      const precioVenta = costoTotalFabricacion / margenFactor;
-      const gananciaNetaDinero = precioVenta - costoTotalFabricacion;
-
-      const precioRounded = Math.round(precioVenta * 100) / 100;
-      const gananciaRounded = Math.round(gananciaNetaDinero * 100) / 100;
-
-      resultadoPrecioDiv.textContent = formatMoney(precioRounded, currency);
-      resultadoGananciaSpan.textContent = formatMoney(gananciaRounded, currency);
-
-      // Mostrar el contra-valor en la moneda secundaria elegida por el usuario
-      // (antes esto estaba fijo a VES sin importar qué moneda quisiera ver el usuario)
-      if (currency === secondaryCurrency) {
-        secondaryPriceDiv.textContent = '—';
-      } else {
-        const montoConvertido = convertirEntreMonedas(precioRounded, currency, secondaryCurrency);
-        if (montoConvertido !== null) {
-          const rateOrigen = obtenerTasaParaMoneda(currency);
-          const rateDestino = obtenerTasaParaMoneda(secondaryCurrency);
-          const tasaMostrada = (rateDestino / rateOrigen).toPrecision(6);
-          secondaryPriceDiv.textContent = `${formatMoney(montoConvertido, secondaryCurrency)} (1 ${currency} = ${tasaMostrada} ${secondaryCurrency})`;
-        } else {
-          secondaryPriceDiv.textContent = '—';
-        }
-      }
-    }
-
-    // Listeners para evaluar expresiones al salir del input o pulsar Enter,
-    // más una vista previa en vivo mientras se escribe un número simple
-    // (antes el resultado solo se actualizaba al salir del campo, lo cual
-    // se sentía "trabado" comparado con Transporte y Ganancia).
-    [materialesInput, maquinaInput].forEach(input => {
-      input.addEventListener('input', () => {
-        // Vista previa en vivo: solo si lo escrito ya es un número válido.
-        // Si el usuario está a mitad de una expresión (ej: "10+"), no recalcula
-        // todavía; espera al blur/Enter donde sí se evalúa la expresión completa.
-        const preview = parseFloat(input.value);
-        if (!isNaN(preview) && isFinite(preview) && /^-?\d*\.?\d+$/.test(input.value.trim())) {
-          calcularPrecioFinal();
-        }
-      });
-      input.addEventListener('blur', () => {
-        evaluarExpresion(input);
-        calcularPrecioFinal();
-      });
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          evaluarExpresion(input);
-          calcularPrecioFinal();
-          input.blur();
-        }
-      });
-    });
-
-    [transporteInput, gananciaInput].forEach(i => i.addEventListener('input', calcularPrecioFinal));
-
-    function refreshRateInput() {
-      const target = getRateTargetCurrency();
-      if (!target) { bcvRateInput.value = ''; return; }
-      const manual = manualRates[target];
-      bcvRateInput.value = manual ? manual : (obtenerTasaParaMoneda(target) || '');
-    }
-
-    // Convierte los montos ya escritos en Materiales/Máquina de una moneda a otra
-    // cuando el usuario cambia la moneda principal, para no tener que volver a
-    // escribir la suma. Ej: 1500+800 en Bs (=2300) -> al pasar a Reais, se
-    // recalcula automáticamente el equivalente en Reais usando la tasa activa.
-    function convertirInputsDeMoneda(monedaOrigen, monedaDestino) {
-      if (monedaOrigen === monedaDestino) return;
-
-      // Primero resolver cualquier expresión pendiente (ej: "1500+800") a un número limpio.
-      const materialesVal = evaluarExpresion(materialesInput);
-      const maquinaVal = evaluarExpresion(maquinaInput);
-
-      const materialesConvertido = convertirEntreMonedas(materialesVal, monedaOrigen, monedaDestino);
-      const maquinaConvertido = convertirEntreMonedas(maquinaVal, monedaOrigen, monedaDestino);
-
-      if (materialesConvertido === null || maquinaConvertido === null) {
-        // No hay tasa disponible entre esas dos monedas todavía (p. ej. aún no sincroniza
-        // o falta una tasa manual). No tocamos los montos para no corromperlos con un
-        // valor incorrecto; solo avisamos.
-        conversionNote.textContent = lang === 'en'
-          ? `⚠️ Couldn't convert amounts from ${monedaOrigen} to ${monedaDestino}: exchange rate not available yet.`
-          : `⚠️ No se pudo convertir de ${monedaOrigen} a ${monedaDestino}: aún no hay tasa de cambio disponible.`;
-        conversionNote.classList.remove('hidden', 'text-gray-400');
-        conversionNote.classList.add('text-amber-600');
-        return;
-      }
-
-      materialesInput.value = (Math.round(materialesConvertido * 100) / 100);
-      maquinaInput.value = (Math.round(maquinaConvertido * 100) / 100);
-
-      const rateOrigen = obtenerTasaParaMoneda(monedaOrigen);
-      const rateDestino = obtenerTasaParaMoneda(monedaDestino);
-      const tasaCruzada = (rateDestino / rateOrigen).toPrecision(6);
-      conversionNote.textContent = lang === 'en'
-        ? `🔄 Amounts converted from ${monedaOrigen} to ${monedaDestino} (1 ${monedaOrigen} = ${tasaCruzada} ${monedaDestino}).`
-        : `🔄 Montos convertidos de ${monedaOrigen} a ${monedaDestino} (1 ${monedaOrigen} = ${tasaCruzada} ${monedaDestino}).`;
-      conversionNote.classList.remove('hidden', 'text-amber-600');
-      conversionNote.classList.add('text-gray-400');
-    }
-
-    currencySelect.addEventListener('change', e => {
-      const oldCurrency = currency;
-      currency = e.target.value;
-      localStorage.setItem(LS_CURRENCY, currency);
-      const symbol = currencySymbols[currency] || '$';
-      currencySymbol.textContent = symbol;
-      currencySymbol2.textContent = symbol;
-      // Si la moneda secundaria quedó igual a la principal, elegir otra automáticamente
-      if (secondaryCurrency === currency) {
-        secondaryCurrency = oldCurrency;
-        secondaryCurrencySelect.value = secondaryCurrency;
-        localStorage.setItem(LS_SECONDARY_CURRENCY, secondaryCurrency);
-      }
-      convertirInputsDeMoneda(oldCurrency, currency);
-      refreshRateInput();
-      updateRateInfo();
-      calcularPrecioFinal();
-    });
-
-    secondaryCurrencySelect.addEventListener('change', e => {
-      secondaryCurrency = e.target.value;
-      localStorage.setItem(LS_SECONDARY_CURRENCY, secondaryCurrency);
-      if (secondaryCurrency === currency) {
-        // Evitar elegir la misma moneda en ambos lados
-        currency = secondaryCurrency === 'USD' ? 'VES' : 'USD';
-        currencySelect.value = currency;
-        localStorage.setItem(LS_CURRENCY, currency);
-        const symbol = currencySymbols[currency] || '$';
-        currencySymbol.textContent = symbol;
-        currencySymbol2.textContent = symbol;
-      }
-      refreshRateInput();
-      updateRateInfo();
-      calcularPrecioFinal();
-    });
-
-    langSelect.addEventListener('change', e => {
-      lang = e.target.value;
-      localStorage.setItem(LS_LANG, lang);
-      applyTranslations();
-      calcularPrecioFinal();
-    });
-
-    saveRateBtn.addEventListener('click', () => {
-      const target = getRateTargetCurrency();
-      if (!target) return; // no debería poder hacer click si la fila está oculta
-      const val = parseFloat(bcvRateInput.value);
-      if (!isNaN(val) && isFinite(val) && val > 0) {
-        // Guardar como override manual para la moneda que realmente lo necesita
-        manualRates[target] = val;
-        localStorage.setItem(LS_MANUAL_RATES, JSON.stringify(manualRates));
-        // También mantener compatibilidad con bcvRate si es VES
-        if (target === 'VES') {
-          bcvRate = val;
-          localStorage.setItem(LS_BCV, String(val));
-        }
-        syncStatus.textContent = '👤 Fijada por usuario';
-        updateRateInfo();
-        calcularPrecioFinal();
-      } else {
-        alert('Introduce una tasa válida.');
-      }
-    });
-
-    // CSV
-    csvBtn.addEventListener('click', () => {
-      const now = new Date().toISOString().replace(/[:.]/g, '-');
-      const rows = [
-        ['Materiales', materialesInput.value],
-        ['Maquina', maquinaInput.value],
-        ['Transporte (%)', transporteInput.value],
-        ['Ganancia (%)', gananciaInput.value],
-        ['Precio Venta ('+currency+')', resultadoPrecioDiv.textContent],
-        ['Ganancia Neta', resultadoGananciaSpan.textContent],
-        ['Tasa usada (1 USD ⇄ '+currency+')', obtenerTasaParaMoneda(currency) || '—']
-      ];
-      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-      try {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `precio_venta_global_${now}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        console.error('Error generando CSV', e);
-        alert('No se pudo generar el CSV.');
-      }
-    });
-
-    printBtn.addEventListener('click', () => window.print());
-
-    copyBtn.addEventListener('click', async () => {
-      const texto = `${t('precioSugerido')}: ${resultadoPrecioDiv.textContent}\n${t('tuGanancia')}: ${resultadoGananciaSpan.textContent}`;
-      try {
-        await navigator.clipboard.writeText(texto);
-        alert('Copiado.');
-      } catch (e) {
-        console.error('Error al copiar', e);
-        alert('No se pudo copiar al portapapeles.');
-      }
-    });
-
-    // Inicialización de la App
-    function init() {
-      const symbol = currencySymbols[currency] || '$';
-      currencySymbol.textContent = symbol;
-      currencySymbol2.textContent = symbol;
-      applyTranslations();
-      refreshRateInput();
-      updateRateInfo();
-      calcularPrecioFinal();
-      // cargar manualRates guardadas (ya hecho al inicio), luego intentar sincronizar
-      fetchExchangeRate();
-    }
-
-    window.addEventListener('DOMContentLoaded', init);
-
-    // --- PWA: registro del Service Worker ---
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(err => {
-          console.warn('No se pudo registrar el service worker:', err);
-        });
-      });
-    }
-
-    // --- PWA: botón de instalación (evento beforeinstallprompt) ---
-    let deferredInstallPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-      installBtn.classList.remove('hidden');
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (!deferredInstallPrompt) return;
-      installBtn.classList.add('hidden');
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-      deferredInstallPrompt = null;
-    });
-
-    window.addEventListener('appinstalled', () => {
-      installBtn.classList.add('hidden');
-      deferredInstallPrompt = null;
-    });
-  </script>
+document.querySelectorAll('input[type=number]').forEach(el => el.addEventListener('input', calcular));
+calcular();
+fetchBCV();
+</script>
 </body>
 </html>
